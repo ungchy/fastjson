@@ -2,6 +2,8 @@ package fastfloat
 
 import (
 	"math"
+	"math/rand"
+	"strconv"
 	"testing"
 )
 
@@ -81,7 +83,11 @@ func TestParseBestEffort(t *testing.T) {
 		t.Helper()
 
 		num := ParseBestEffort(s)
-		if num != expectedNum {
+		if math.IsNaN(expectedNum) {
+			if !math.IsNaN(num) {
+				t.Fatalf("unexpected number parsed from %q; got %v; want %v", s, num, expectedNum)
+			}
+		} else if num != expectedNum {
 			t.Fatalf("unexpected number parsed from %q; got %v; want %v", s, num, expectedNum)
 		}
 	}
@@ -145,6 +151,12 @@ func TestParseBestEffort(t *testing.T) {
 	f("0.3", 0.3)
 	f("-0.1", -0.1)
 	f("-0.123", -0.123)
+	f("1.66", 1.66)
+	f("12345.12345678901", 12345.12345678901)
+	f("12345.123456789012", 12345.123456789012)
+	f("12345.1234567890123", 12345.1234567890123)
+	f("12345.12345678901234", 12345.12345678901234)
+	f("12345.123456789012345", 12345.123456789012345)
 	f("12345.1234567890123456", 12345.1234567890123456)
 	f("12345.12345678901234567", 12345.12345678901234567)
 	f("12345.123456789012345678", 12345.123456789012345678)
@@ -162,12 +174,40 @@ func TestParseBestEffort(t *testing.T) {
 	f("-0E-123", 0)
 	f("-0E+123", 0)
 	f("123e12", 123e12)
-	f("-123E-12", -123E-12)
+	f("-123E-12", -123e-12)
 	f("-123e-400", 0)
 	f("123e456", math.Inf(1))   // too big exponent
 	f("-123e456", math.Inf(-1)) // too big exponent
+	f("1e4", 1e4)
+	f("-1E-10", -1e-10)
 
 	// Fractional + exponent part
 	f("0.123e4", 0.123e4)
-	f("-123.456E-10", -123.456E-10)
+	f("-123.456E-10", -123.456e-10)
+	f("1.e4", 1.e4)
+	f("-1.E-10", -1.e-10)
+
+	// inf and nan
+	f("inf", math.Inf(1))
+	f("-Inf", math.Inf(-1))
+	f("INF", math.Inf(1))
+	f("nan", math.NaN())
+	f("naN", math.NaN())
+	f("NaN", math.NaN())
+}
+
+func TestParseBestEffortFuzz(t *testing.T) {
+	r := rand.New(rand.NewSource(0))
+	for i := 0; i < 100000; i++ {
+		f := r.Float64()
+		s := strconv.FormatFloat(f, 'g', -1, 64)
+		numExpected, err := strconv.ParseFloat(s, 64)
+		if err != nil {
+			t.Fatalf("unexpected error when parsing %q: %s", s, err)
+		}
+		num := ParseBestEffort(s)
+		if num != numExpected {
+			t.Fatalf("unexpected number parsed from %q; got %g; want %g", s, num, numExpected)
+		}
+	}
 }
