@@ -764,6 +764,21 @@ func (v *Value) GetFloat64(keys ...string) float64 {
 	return fastfloat.ParseBestEffort(v.s)
 }
 
+func (v *Value) GetFloat64Str(keys ...string) float64 {
+	v = v.Get(keys...)
+	if v == nil || v.Type() != TypeString {
+		return 0
+	}
+	return fastfloat.ParseBestEffort(v.s)
+	/*
+		f, err := strconv.ParseFloat(v.s, 64)
+		if err != nil {
+			return 0
+		}
+		return f
+	*/
+}
+
 // GetInt returns int value by the given keys path.
 //
 // Array indexes may be represented as decimal numbers in keys.
@@ -772,6 +787,19 @@ func (v *Value) GetFloat64(keys ...string) float64 {
 func (v *Value) GetInt(keys ...string) int {
 	v = v.Get(keys...)
 	if v == nil || v.Type() != TypeNumber {
+		return 0
+	}
+	n := fastfloat.ParseInt64BestEffort(v.s)
+	nn := int(n)
+	if int64(nn) != n {
+		return 0
+	}
+	return nn
+}
+
+func (v *Value) GetIntStr(keys ...string) int {
+	v = v.Get(keys...)
+	if v == nil || v.Type() != TypeString {
 		return 0
 	}
 	n := fastfloat.ParseInt64BestEffort(v.s)
